@@ -22,8 +22,8 @@
   ],
   "dependencies": {
     "@elizaos/core": "workspace:*",
-    "@types/pg": "8.11.10",
-    "pg": "8.13.1",
+    "@types/pg": "8.11.11",
+    "pg": "8.13.3",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
