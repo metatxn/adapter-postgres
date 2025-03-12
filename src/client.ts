@@ -974,35 +974,38 @@ class PostgresDatabaseAdapter
           inputLength: opts.query_input.length,
         });
 
+        // Truncate long input to 255 characters for Levenshtein comparison
+        const truncatedInput = opts.query_input.slice(0, 255);
+
         const sql = `
-                    WITH content_text AS (
-                        SELECT
-                            embedding,
-                            COALESCE(
-                                content->>$2,
-                                ''
-                            ) as content_text
-                        FROM memories
-                        WHERE type = $3
-                        AND content->>$2 IS NOT NULL
-                    )
+                WITH content_text AS (
                     SELECT
                         embedding,
-                        levenshtein(
-                            $1,
-                            content_text
-                        ) as levenshtein_score
-                    FROM content_text
-                    WHERE levenshtein(
+                        COALESCE(
+                            LEFT(content->>$2, 255),
+                            ''
+                        ) as content_text
+                    FROM memories
+                    WHERE type = $3
+                    AND content->>$2 IS NOT NULL
+                )
+                SELECT
+                    embedding,
+                    levenshtein(
                         $1,
                         content_text
-                    ) <= $5  -- Add threshold check
-                    ORDER BY levenshtein_score
-                    LIMIT $4
-                `;
+                    ) as levenshtein_score
+                FROM content_text
+                WHERE levenshtein(
+                    $1,
+                    content_text
+                ) <= $5  -- Add threshold check
+                ORDER BY levenshtein_score
+                LIMIT $4
+            `;
 
         const { rows } = await this.pool.query(sql, [
-          opts.query_input,
+          truncatedInput,
           opts.query_field_sub_name,
           opts.query_table_name,
           opts.query_match_count,
